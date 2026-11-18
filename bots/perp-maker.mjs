@@ -1,3 +1,4 @@
+import { isFreshMark } from '../core/mark-freshness.mjs'
 import { cancelAll, clampToBand, connect, ensureFunded, market, placeLimit, roundToTick } from '../core/mnx.mjs'
 
 const symbol = process.env.SYMBOL ?? 'NVDA'
@@ -18,7 +19,7 @@ while (!stopping) {
   current = await market(symbol)
   if (!current) { if (marketId) await cancelAll(ctx, marketId); console.log(`${symbol} is absent: terminal market, exiting`); break }
   marketId = current.market_id
-  if (Date.now() - Date.parse(current.mark_price_timestamp) > 5 * 60_000) {
+  if (!isFreshMark(current.mark_price_timestamp)) {
     await cancelAll(ctx, current.market_id); console.log('stale mark; cancelled and waiting'); await sleep(5000); continue
   }
   await cancelAll(ctx, current.market_id)
@@ -33,3 +34,4 @@ while (!stopping) {
   console.log(`bid ${bidP} (${bid.order.order_id} ${bid.order.status}); ask ${askP} (${ask.order.order_id} ${ask.order.status})`)
   await sleep(5000)
 }
+
